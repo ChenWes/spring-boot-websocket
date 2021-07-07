@@ -5,10 +5,14 @@ CF MES WebSocket
 
 该项目最主要的功能在于，能够替换之前[SocketCluster](https://www.socketcluster.io/)的功能，但因为SocketCluster是基于Nodejs开发的，与SpringBoot的兼容不是很好，所以现在使用[Netty](https://netty.io/)开发WebSocket功能，方便前端与后端进行Socket集成。
 
-项目包含两部分功能
+项目包含三部分功能
 * 与前端React`建立Socket连接`，前端能够通过[PubSubJS](https://github.com/mroderick/PubSubJS)`订阅Socket的消息`。
-* 预先建立接口，方便Backend调用该接口，通过该项目以广播的形式`将消息发送到各个客户端`。
+* 预先建立接口，方便Backend调用该接口，通过该项目以广播的形式`将消息发送到各个客户端`。（该功能需要修改，暂时停用）
+* Spring Boot与Netty建立连接，直接系统对系统，将消息发送过来。
 
+---
+
+![](./WebSocket处理多语言消息.png)
 
 
 接口标准
