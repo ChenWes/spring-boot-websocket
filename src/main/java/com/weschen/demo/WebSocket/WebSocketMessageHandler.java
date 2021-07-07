@@ -33,6 +33,9 @@ public class WebSocketMessageHandler {
 
             //将频道列表进行过滤
             List<Channel> channelList = getChannelByChannelID(channelId);
+            if (channelList.size() == 0) {
+                System.out.println("频道" + channelId + "不存在，该消息将不会转发。");
+            }
 
             //多语言过滤key
             AttributeKey<String> langKey = AttributeKey.valueOf(WebSocketConstants.CHANNEL_LANG_KEY);
@@ -78,6 +81,7 @@ public class WebSocketMessageHandler {
 
     /**
      * 通过频道ID匹配频道连接
+     *
      * @param channelid
      * @return
      */
