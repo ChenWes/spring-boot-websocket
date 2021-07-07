@@ -1,4 +1,2 @@
 server:
-  port: 8081
-websocket:
-  port: 12345
+  port: 8082

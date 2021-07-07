@@ -8,8 +8,14 @@ import java.util.Set;
 
 public class ChannelHandlerPool {
 
+    /**
+     * 频道池
+     */
     public ChannelHandlerPool() {
     }
 
+    /**
+     * 频道池
+     */
     public static Set<Channel> channelGroup = Collections.synchronizedSet(new HashSet<>());
 }

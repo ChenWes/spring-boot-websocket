@@ -8,7 +8,7 @@ COPY target/demo-0.0.1-SNAPSHOT.jar ./
 ENV port=""
 
 #公开端口
-EXPOSE 8081
+EXPOSE 8082
 EXPOSE 12345
 
 #设置启动命令
