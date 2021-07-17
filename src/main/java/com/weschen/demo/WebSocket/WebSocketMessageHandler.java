@@ -35,8 +35,9 @@ public class WebSocketMessageHandler {
             List<Channel> channelList = getChannelByChannelID(channelId);
             if (channelList.size() == 0) {
                 System.out.println("频道" + channelId + "不存在，该消息将不会转发。");
+            } else {
+                System.out.println("找到频道" + channelId + "，该消息将转发。");
             }
-
             //多语言过滤key
             AttributeKey<String> langKey = AttributeKey.valueOf(WebSocketConstants.CHANNEL_LANG_KEY);
 
@@ -62,6 +63,8 @@ public class WebSocketMessageHandler {
 
                         //将取出对应语言的数据，发送至对应的频道中
                         channel.writeAndFlush(new TextWebSocketFrame(sendData));
+
+                        System.out.println("频道" + channelId + "[" + (index + 1) + "][lang=" + channelLangValue + "]，该消息已转发。");
                     }
 
                     index++;
