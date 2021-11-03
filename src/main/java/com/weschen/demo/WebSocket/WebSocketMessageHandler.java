@@ -73,6 +73,7 @@ public class WebSocketMessageHandler {
             });
 
         } catch (Exception ex) {
+            System.out.println("消息转发广播时出现问题" + ex.getMessage());
             /**
              * 当发生错误时，暂时不会将错误弹出，
              * 如果弹出，则会将API与Netty建立的连接强制关闭
