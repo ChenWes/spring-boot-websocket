@@ -45,29 +45,39 @@ public class WebSocketMessageHandler {
             channelList.forEach(channel -> {
                 String channelLangValue = channel.attr(langKey).get();
 
-                //循环语言对比
-                int index = 0;
-                for (LangInfoType langInfoType : LangInfoType.values()) {
+                if (channelLangValue == null) {
+                    //非多语言的数据，直接发送至对应的频道中
+                    channel.writeAndFlush(new TextWebSocketFrame(dataString));
 
-                    //对比语言，有下划线与中线的不同
-                    String langValue = StringUtils.join(langInfoType.toString().split("_"), "-");
+                } else {
 
 
-                    //如果语言对比成功，则开始处理消息
-                    if (langValue.equals(channelLangValue)) {
+                    //循环语言对比
+                    int index = 0;
+                    for (LangInfoType langInfoType : LangInfoType.values()) {
 
-                        //将多语言数据转成数组
-                        JSONArray getDataList = JSONObject.parseArray(dataString);
-                        //将多语言数据取出某个索引的数据，即对应相应语言的原始数据
-                        String sendData = JSONObject.toJSONString(getDataList.getJSONObject(index));
+                        //对比语言，有下划线与中线的不同
+                        String langValue = StringUtils.join(langInfoType.toString().split("_"), "-");
 
-                        //将取出对应语言的数据，发送至对应的频道中
-                        channel.writeAndFlush(new TextWebSocketFrame(sendData));
 
-                        System.out.println("频道" + channelId + "[" + (index + 1) + "][lang=" + channelLangValue + "]，该消息已转发。");
+                        //如果语言对比成功，则开始处理消息
+                        if (langValue.equals(channelLangValue)) {
+
+                            //将多语言数据转成数组
+                            JSONArray getDataList = JSONObject.parseArray(dataString);
+                            //将多语言数据取出某个索引的数据，即对应相应语言的原始数据
+                            String sendData = JSONObject.toJSONString(getDataList.getJSONObject(index));
+
+                            //将取出对应语言的数据，发送至对应的频道中
+                            channel.writeAndFlush(new TextWebSocketFrame(sendData));
+
+                            System.out.println("频道" + channelId + "[" + (index + 1) + "][lang=" + channelLangValue + "]，该消息已转发。");
+                        }
+
+                        index++;
                     }
 
-                    index++;
+
                 }
 
             });
