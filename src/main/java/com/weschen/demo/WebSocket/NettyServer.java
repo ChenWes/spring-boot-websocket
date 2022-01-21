@@ -83,8 +83,12 @@ public class NettyServer {
                             // 频道上线与下线，频道发送消息都由它处理
                             ch.pipeline().addLast(new WebSocketHandler());
 
-                            // WebSocket协议处理器
-                            ch.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", null, true, 65536 * 10));
+                            /**
+                             * WebSocket协议处理器
+                             * websocketPath 表示 webSocket 的路径
+                             * maxFrameSize 表示最大的帧，如果上传大文件时需要将此值调大
+                             */
+                            ch.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", null, true, 65536 * 100));
 
 
                         }
