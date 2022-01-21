@@ -84,7 +84,7 @@ public class NettyServer {
                             ch.pipeline().addLast(new WebSocketHandler());
 
                             // WebSocket协议处理器
-                            ch.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", null, true, 65536 * 10));
+                            ch.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", null, true, 65536 * 100));
 
 
                         }
