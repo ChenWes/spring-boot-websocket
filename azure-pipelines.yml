@@ -10,7 +10,7 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-   imageName: 'cf-mes-websocket:$(build.BuildNumber)'
+   imageName: '$(dockerRegistry)/cf-mes-websocket:$(build.BuildNumber)'
 
 steps:
 - task: Maven@3
@@ -31,8 +31,7 @@ steps:
   
 # 将镜像推送至DockerHub
 - script: |
-    docker login -u $(dockerId) -p $(pswd)
-    docker tag $(imageName) $(dockerId)/$(imageName)  
-    docker push $(dockerId)/$(imageName)
+    docker login --username=$(dockerUsername) registry.cn-hangzhou.aliyuncs.com -p $(dockerPassword)
+    docker push $(imageName)
   displayName: 'push image'  
     
