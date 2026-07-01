@@ -17,7 +17,7 @@ public enum LangInfoType {
     zh_CN,
 
     /**
-     * 繁体中文
+     * 繁体中文，由中国台湾更改为中国香港
      */
-    zh_TW
+    zh_HK
 }
