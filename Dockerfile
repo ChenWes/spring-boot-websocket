@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk-alpine
+FROM eclipse-temurin:17-jre-alpine
 MAINTAINER WesChen(chenxuhua0530@163.com)
 
 VOLUME /tmp
@@ -12,4 +12,4 @@ EXPOSE 8082
 EXPOSE 12345
 
 #设置启动命令
-ENTRYPOINT ["sh","-c","java -jar demo-0.0.1-SNAPSHOT.jar "]
+ENTRYPOINT ["sh","-c","java -jar demo-0.0.2-SNAPSHOT.jar "]
