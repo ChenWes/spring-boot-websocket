@@ -8,14 +8,17 @@ import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.util.AttributeKey;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class WebSocketMessageHandler {
+    private static final Logger log = LoggerFactory.getLogger(WebSocketMessageHandler.class);
 
-    public static void ProcessMessage(String message) {
-
+    public static void ProcessMessage(String message, Channel sendChannel) {
+        String logChannelId = null;
         try {
 
             //首次解析消息内容
@@ -28,15 +31,17 @@ public class WebSocketMessageHandler {
 
             //获取消息体中需要发送的频道ID
             String channelId = jsonObject.getString(WebSocketConstants.MESSAGE_CHANNEL_ID_KEY);
+            logChannelId = channelId;
+
             //获取消息体中多语言设定
             String dataString = jsonObject.getString(WebSocketConstants.MESSAGE_DATA_KEY);
 
             //将频道列表进行过滤
             List<Channel> channelList = getChannelByChannelID(channelId);
             if (channelList.size() == 0) {
-                System.out.println("频道" + channelId + "不存在，该消息将不会转发。");
+                log.debug("频道{}不存在，该消息将不会转发。", channelId);
             } else {
-                System.out.println("找到频道" + channelId + "，该消息将转发。");
+                log.debug("找到频道{}，该消息将转发。", channelId);
             }
             //多语言过滤key
             AttributeKey<String> langKey = AttributeKey.valueOf(WebSocketConstants.CHANNEL_LANG_KEY);
@@ -71,7 +76,7 @@ public class WebSocketMessageHandler {
                             //将取出对应语言的数据，发送至对应的频道中
                             channel.writeAndFlush(new TextWebSocketFrame(sendData));
 
-                            System.out.println("频道" + channelId + "[" + (index + 1) + "][lang=" + channelLangValue + "]，该消息已转发。");
+                            log.debug("频道{}[{}][lang={}]，该消息已转发。", channelId, index + 1, channelLangValue);
                         }
 
                         index++;
@@ -83,7 +88,14 @@ public class WebSocketMessageHandler {
             });
 
         } catch (Exception ex) {
-            System.out.println("消息转发广播时出现问题" + ex.getMessage());
+            log.error("消息转发广播失败 来自={} type={} channel={} msgLen={} 报文={} 频道池={}",
+                    ex.getClass().getSimpleName(),
+                    sendChannel == null ? "unknown" :  sendChannel.remoteAddress(),
+                    logChannelId,
+                    message == null ? -1 : message.length(),
+                    message,
+                    ChannelHandlerPool.dumpPool(),
+                    ex);
             /**
              * 当发生错误时，暂时不会将错误弹出，
              * 如果弹出，则会将API与Netty建立的连接强制关闭

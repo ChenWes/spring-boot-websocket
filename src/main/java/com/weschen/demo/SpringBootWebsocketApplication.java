@@ -5,9 +5,13 @@ import com.weschen.demo.WebSocket.NettyServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SpringBootApplication
 public class SpringBootWebsocketApplication {
+
+	private static final Logger log = LoggerFactory.getLogger(SpringBootWebsocketApplication.class);
 
 	public static void main(String[] args) {
 
@@ -35,7 +39,7 @@ public class SpringBootWebsocketApplication {
 
 		} catch (Exception e) {
 
-			System.out.println("NettyServerError:" + e.getMessage());
+			log.debug("NettyServerError: {}", e.getMessage());
 
 		}
 	}

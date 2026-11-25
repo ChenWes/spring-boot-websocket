@@ -8,6 +8,8 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.util.AttributeKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -16,7 +18,7 @@ import java.util.concurrent.ConcurrentMap;
  * 自定义Websocket助手类
  */
 public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
-
+    private static final Logger log = LoggerFactory.getLogger(WebSocketHandler.class);
 
     private final AttributeKey<String> channel_key = AttributeKey.valueOf(WebSocketConstants.CHANNEL_CHANNEL_ID_KEY);
     private final AttributeKey<String> lang_key = AttributeKey.valueOf(WebSocketConstants.CHANNEL_LANG_KEY);
@@ -35,7 +37,7 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("与客户端建立连接，通道开启！");
+        log.debug("与客户端建立连接，通道开启！");
     }
 
     /**
@@ -46,7 +48,7 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("与客户端断开连接，通道关闭！");
+        log.debug("与客户端断开连接，通道关闭！");
 
         // 添加到channelGroup 通道组
         ChannelHandlerPool.channelGroup.remove(ctx.channel());
@@ -70,7 +72,7 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
 
             //处理参数
             ConcurrentMap<String, String> paramMap = getUrlParams(uri);
-            System.out.println("接收到连接的完整的参数是：" + JSON.toJSONString(paramMap));
+            log.debug("接收到连接的完整的参数是：{}", JSON.toJSONString(paramMap));
 
             //存储频道上线
             online(paramMap.get(WebSocketConstants.CHANNEL_CHANNEL_ID_KEY), paramMap.get(WebSocketConstants.CHANNEL_LANG_KEY), ctx.channel());
@@ -90,11 +92,11 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
             // 有可能是发送过来的心跳检测
             // 也有可能是正常的文本消息
             TextWebSocketFrame frame = (TextWebSocketFrame) msg;
-            System.out.println("read0: " + frame.text());
+            log.debug("read0: {}", frame.text());
 
 
             //处理转发体
-            WebSocketMessageHandler.ProcessMessage(frame.text());
+            WebSocketMessageHandler.ProcessMessage(frame.text(), ctx.channel());
 
         }
 
@@ -152,7 +154,9 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
         // 保存channel通道的附带信息，以频道ID和语言为标识
         channel.attr(channel_key).set(channelId);
         channel.attr(lang_key).set(lang);
-
+        if (channelId == null) {
+            log.warn("连接未携带channel参数即入池(转发空指针隐患) remote={}", channel.remoteAddress());
+        }
         ChannelHandlerPool.channelGroup.add(channel);
     }
 }
