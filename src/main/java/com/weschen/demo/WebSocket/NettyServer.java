@@ -16,11 +16,15 @@ import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.util.CharsetUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 服务器启动类
  */
 public class NettyServer {
+
+    private static final Logger log = LoggerFactory.getLogger(NettyServer.class);
 
     /**
      * Netty服务器端口
@@ -65,7 +69,7 @@ public class NettyServer {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
 
-                            System.out.println("收到新连接：" + ch.id());
+                            log.debug("收到新连接：{}", ch.id());
 
                             // websocket协议本身是基于http协议的，所以这边也要使用http解编码器
                             ch.pipeline().addLast(new HttpServerCodec());
@@ -100,7 +104,7 @@ public class NettyServer {
             // 服务器异步创建绑定，ServerBootstrap的核心操作是bind()方法
             ChannelFuture cf = sb.bind().sync();
 
-            System.out.println(NettyServer.class + " 启动正在监听： " + cf.channel().localAddress());
+            log.debug("{} 启动正在监听： {}", NettyServer.class, cf.channel().localAddress());
 
             // 关闭服务器通道
             cf.channel().closeFuture().sync();
