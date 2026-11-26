@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk-alpine
+FROM adoptopenjdk/openjdk8-openj9:alpine-slim
 MAINTAINER WesChen(chenxuhua0530@163.com)
 
 VOLUME /tmp
