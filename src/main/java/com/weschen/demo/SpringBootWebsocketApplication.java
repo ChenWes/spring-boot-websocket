@@ -39,7 +39,7 @@ public class SpringBootWebsocketApplication {
 
 		} catch (Exception e) {
 
-			log.debug("NettyServerError: {}", e.getMessage());
+			log.error("Netty WebSocket 启动失败 port=12345", e);
 
 		}
 	}

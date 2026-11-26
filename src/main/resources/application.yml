@@ -5,3 +5,5 @@ server:
 logging:
   level:
     com.weschen.demo: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger : %msg%n%wEx"

@@ -6,13 +6,15 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.util.AttributeKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 自定义Websocket助手类
@@ -37,7 +39,8 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        log.debug("与客户端建立连接，通道开启！");
+        Channel channel = ctx.channel();
+        log.debug("TCP通道活跃 remote={} nettyId={}", channel.remoteAddress(), channel.id().asShortText());
     }
 
     /**
@@ -48,10 +51,18 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        log.debug("与客户端断开连接，通道关闭！");
-
-        // 添加到channelGroup 通道组
-        ChannelHandlerPool.channelGroup.remove(ctx.channel());
+        Channel channel = ctx.channel();
+        boolean tracked = ChannelHandlerPool.channelGroup.contains(channel);
+        String businessChannel = channel.attr(channel_key).get();
+        String lang = channel.attr(lang_key).get();
+        ChannelHandlerPool.channelGroup.remove(channel);
+        if (tracked) {
+            log.info("客户端下线 remote={} nettyId={} channel={} lang={}",
+                    channel.remoteAddress(), channel.id().asShortText(), businessChannel, lang);
+        } else {
+            log.debug("连接关闭且未入池 remote={} nettyId={}",
+                    channel.remoteAddress(), channel.id().asShortText());
+        }
     }
 
 
@@ -70,21 +81,17 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
             FullHttpRequest request = (FullHttpRequest) msg;
             String uri = request.uri();
 
-            //处理参数
-            ConcurrentMap<String, String> paramMap = getUrlParams(uri);
-            log.debug("接收到连接的完整的参数是：{}", JSON.toJSONString(paramMap));
+            // QueryStringDecoder 按 URL 规则解析，参数没有 = 或值里再出现 = 都不会切错
+            QueryStringDecoder decoder = new QueryStringDecoder(uri);
+            Map<String, String> paramMap = getUrlParams(decoder);
+            log.debug("握手参数 remote={} nettyId={} params={}",
+                    ctx.channel().remoteAddress(), ctx.channel().id().asShortText(), JSON.toJSONString(paramMap));
 
             //存储频道上线
             online(paramMap.get(WebSocketConstants.CHANNEL_CHANNEL_ID_KEY), paramMap.get(WebSocketConstants.CHANNEL_LANG_KEY), ctx.channel());
 
-
-            // 如果url包含参数，需要处理
-            if (uri.contains("?")) {
-                // 将参数处理掉，将其中的连接，直接导流至根部
-                String newUri = uri.substring(0, uri.indexOf("?"));
-                //http请求重定向
-                request.setUri(newUri);
-            }
+            // 协议处理器按路径精确匹配 /ws，查询串留在 uri 上会导致握手失败
+            request.setUri(decoder.path());
 
         } else if (msg instanceof TextWebSocketFrame) {
 
@@ -92,7 +99,13 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
             // 有可能是发送过来的心跳检测
             // 也有可能是正常的文本消息
             TextWebSocketFrame frame = (TextWebSocketFrame) msg;
-            log.debug("read0: {}", frame.text());
+            String text = frame.text();
+            log.debug("收到消息 remote={} nettyId={} connChannel={} msgLen={} body={}",
+                    ctx.channel().remoteAddress(),
+                    ctx.channel().id().asShortText(),
+                    ctx.channel().attr(channel_key).get(),
+                    text == null ? -1 : text.length(),
+                    text);
 
 
             //处理转发体
@@ -106,39 +119,18 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
 
 
     /**
-     * 处理参数
-     *
-     * @param url
-     * @return
+     * 同一个参数出现多次时只保留第一个值。
      */
-    private static ConcurrentMap<String, String> getUrlParams(String url) {
-        ConcurrentMap<String, String> map = new ConcurrentHashMap<>();
-
-        //将问号替换成分号
-        url = url.replace("?", ";");
-        if (!url.contains(";")) {
-            return map;
-        }
-
-
-        if (url.split(";").length > 0) {
-
-            String[] arr = url.split(";")[1].split("&");
-
-            //循环取出内容
-            for (String s : arr) {
-
-                String key = s.split("=")[0];
-                String value = s.split("=")[1];
-
-                map.put(key, value);
+    private static Map<String, String> getUrlParams(QueryStringDecoder decoder) {
+        Map<String, String> map = new LinkedHashMap<>();
+        for (Map.Entry<String, List<String>> entry : decoder.parameters().entrySet()) {
+            List<String> values = entry.getValue();
+            if (values == null || values.isEmpty()) {
+                continue;
             }
-            return map;
-
-        } else {
-
-            return map;
+            map.put(entry.getKey(), values.get(0));
         }
+        return map;
     }
 
 
@@ -154,9 +146,13 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
         // 保存channel通道的附带信息，以频道ID和语言为标识
         channel.attr(channel_key).set(channelId);
         channel.attr(lang_key).set(lang);
-        if (channelId == null) {
-            log.warn("连接未携带channel参数即入池(转发空指针隐患) remote={}", channel.remoteAddress());
-        }
         ChannelHandlerPool.channelGroup.add(channel);
+        log.info("客户端上线 remote={} nettyId={} channel={} lang={}",
+                channel.remoteAddress(), channel.id().asShortText(), channelId, lang);
+        // 没有 channel 仍入池，方便在快照里看到这条连接。null 匹配不到任何频道；空字符串只能匹配空的 channelId
+        if (channelId == null || channelId.isEmpty()) {
+            log.warn("连接未携带 channel 参数已入池，不会参与按频道转发 remote={} nettyId={}",
+                    channel.remoteAddress(), channel.id().asShortText());
+        }
     }
 }

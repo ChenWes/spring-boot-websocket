@@ -69,7 +69,7 @@ public class NettyServer {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
 
-                            log.debug("收到新连接：{}", ch.id());
+                            log.debug("接受连接 remote={} nettyId={}", ch.remoteAddress(), ch.id().asShortText());
 
                             // websocket协议本身是基于http协议的，所以这边也要使用http解编码器
                             ch.pipeline().addLast(new HttpServerCodec());
@@ -104,7 +104,7 @@ public class NettyServer {
             // 服务器异步创建绑定，ServerBootstrap的核心操作是bind()方法
             ChannelFuture cf = sb.bind().sync();
 
-            log.debug("{} 启动正在监听： {}", NettyServer.class, cf.channel().localAddress());
+            log.info("Netty WebSocket 已启动 path=/ws 监听={}", cf.channel().localAddress());
 
             // 关闭服务器通道
             cf.channel().closeFuture().sync();
