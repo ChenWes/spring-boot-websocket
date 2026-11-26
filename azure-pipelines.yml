@@ -4,7 +4,7 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/java
 
 trigger:
-- master
+- dev
 
 pool:
   vmImage: ubuntu-latest
@@ -13,25 +13,36 @@ variables:
    imageName: '$(dockerRegistry)/cf-mes-websocket:$(build.BuildNumber)'
 
 steps:
-- task: Maven@3
-  inputs:
-    mavenPomFile: 'pom.xml'
-    mavenOptions: '-Xmx3072m'
-    javaHomeOption: 'JDKVersion'
-    jdkVersionOption: '1.8'
-    jdkArchitectureOption: 'x64'
-    publishJUnitResults: true
-    testResultsFiles: '**/surefire-reports/TEST-*.xml'
-    goals: 'package'
-    
-# 编译镜像
-- script: |
-    docker build -t $(imageName) .
-  displayName: 'build image' 
-  
-# 将镜像推送至DockerHub
-- script: |
-    docker login --username=$(dockerUsername) registry.cn-hangzhou.aliyuncs.com -p $(dockerPassword)
-    docker push $(imageName)
-  displayName: 'push image'  
-    
+  # ubuntu-latest 已不再预装 JDK 8，Maven@3 会因此找不到 JAVA_HOME_8_X64
+  - script: |
+      set -euo pipefail
+      JDK_DIR="$(Agent.ToolsDirectory)/jdk-8"
+      mkdir -p "$JDK_DIR"
+      curl -fsSL --retry 3 -o /tmp/jdk8.tar.gz \
+        "https://api.adoptium.net/v3/binary/latest/8/ga/linux/x64/jdk/hotspot/normal/eclipse?project=jdk"
+      tar -xzf /tmp/jdk8.tar.gz -C "$JDK_DIR" --strip-components=1
+      echo "##vso[task.setvariable variable=JAVA_HOME]$JDK_DIR"
+      echo "##vso[task.setvariable variable=JAVA_HOME_8_X64]$JDK_DIR"
+      "$JDK_DIR/bin/java" -version
+    displayName: 'Install Temurin JDK 8'
+
+  - task: Maven@3
+    inputs:
+      mavenPomFile: 'pom.xml'
+      mavenOptions: '-Xmx3072m'
+      javaHomeOption: 'Path'
+      jdkDirectory: '$(Agent.ToolsDirectory)/jdk-8'
+      publishJUnitResults: true
+      testResultsFiles: '**/surefire-reports/TEST-*.xml'
+      goals: 'package'
+
+  # 编译镜像
+  - script: |
+      docker build -t $(imageName) .
+    displayName: 'build image'
+
+  # 将镜像推送至DockerHub
+  - script: |
+      docker login --username=$(dockerUsername) registry.cn-hangzhou.aliyuncs.com -p $(dockerPassword)
+      docker push $(imageName)
+    displayName: 'push image'
